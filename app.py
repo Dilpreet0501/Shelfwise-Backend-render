@@ -70,7 +70,7 @@ def get_books(book_request: BookRequest):
     book_name = book_request.book_name
     if not book_name:
         raise HTTPException(status_code=400, detail="Book name not provided")
-    
+    data=[]
     item = {}
     temp_df = new_books[new_books['Book-Title'] == book_name]
     if not temp_df.empty:
@@ -80,9 +80,9 @@ def get_books(book_request: BookRequest):
 
         ratings_df = ratings_with_name[ratings_with_name['Book-Title'] == book_name]
         item['average_rating'] = ratings_df['Book-Rating'].mean()
-        return {"getbooks": item}
-    else:
-        raise HTTPException(status_code=404, detail="Book not found")
+        data.append(item)
+    return {"getbooks": data}
+    
 
 @app.get("/high-rated")
 def get_high_rated_books() -> List[Dict[str, Any]]:

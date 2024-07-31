@@ -7,7 +7,6 @@ import pickle
 
 app = FastAPI()
 
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -30,25 +29,25 @@ def read_root():
     return {"message": "API is Running"}
 
 def recommend(book_name: str) -> List[Dict[str, Any]]:
-    
     try:
         index = np.where(pivot_table.index == book_name)[0][0]
     except IndexError:
         raise HTTPException(status_code=404, detail=f"Book '{book_name}' not found in the pivot table.")
-
-   
+    
     similar_books = sorted(list(enumerate(similarity_matrix[index])), key=lambda x: x[1], reverse=True)[1:11]
 
-    
     data = []
     for idx, similarity in similar_books:
+        item = {}
         temp_df = new_books[new_books['Book-Title'] == pivot_table.index[idx]]
-        item = {
-            "title": temp_df['Book-Title'].values[0],
-            "author": temp_df['Book-Author'].values[0],
-            "image_url": temp_df['Image-URL-M'].values[0],
-            "similarity": similarity
-        }
+        item['title'] = temp_df['Book-Title'].values[0]
+        item['author'] = temp_df['Book-Author'].values[0]
+        item['image_url'] = temp_df['Image-URL-M'].values[0]
+
+        ratings_df = ratings_with_name[ratings_with_name['Book-Title'] == pivot_table.index[idx]]
+        item['average_rating'] = ratings_df['Book-Rating'].mean()
+
+        item['similarity'] = similarity
         data.append(item)
 
     return data
@@ -62,6 +61,27 @@ def predict(book_request: BookRequest):
     recommendations = recommend(book_name)
     return {"recommendations": recommendations}
 
+@app.get("/high-rated")
+def get_high_rated_books() -> List[Dict[str, Any]]:
+    high_rated_books = ratings_with_name.groupby('Book-Title').agg(
+        average_rating=('Book-Rating', 'mean')
+    ).reset_index()
+
+    high_rated_books = high_rated_books.sort_values(by='average_rating', ascending=False).head(10)
+
+    data = []
+    for _, row in high_rated_books.iterrows():
+        item = {}
+        temp_df = new_books[new_books['Book-Title'] == row['Book-Title']]
+        item['title'] = temp_df['Book-Title'].values[0]
+        item['author'] = temp_df['Book-Author'].values[0]
+        item['image_url'] = temp_df['Image-URL-M'].values[0]
+        item['average_rating'] = row['average_rating']
+        data.append(item)
+
+    return {"high_rated_books": data}
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5000)
+

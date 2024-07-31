@@ -20,6 +20,7 @@ with open('book_recommendation_model.pkl', 'rb') as file:
     pivot_table = model['pivot_table']
     similarity_matrix = model['similarity_matrix']
     new_books = model['new_books']
+    ratings_with_name = model['ratings_with_name']
 
 class BookRequest(BaseModel):
     book_name: str

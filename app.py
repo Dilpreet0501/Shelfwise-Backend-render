@@ -29,7 +29,7 @@ class BookRequest(BaseModel):
 def read_root():
     return {"message": "API is Running"}
 
-@app.post("/recom")
+
 def recommend(book_name: str) -> List[Dict[str, Any]]:
     try:
         index = np.where(pivot_table.index == book_name)[0][0]
@@ -62,6 +62,24 @@ def predict(book_request: BookRequest):
 
     recommendations = recommend(book_name)
     return {"recommendations": recommendations}
+
+@app.post("/booksget")
+def get_books(book_request: BookRequest):
+    book_name = book_request.book_name
+    if not book_name:
+        raise HTTPException(status_code=400, detail="Book name not provided")
+    
+    item={}
+    if book_name==new_books['Book-Title']:
+        item['title'] = new_books['Book-Title']
+        item['author'] = new_books['Book-Author']
+        item['image_url'] = new_books['Image-URL-M']
+
+        ratings_df = ratings_with_name[ratings_with_name['Book-Title'] == pivot_table.index[idx]]
+        item['average_rating'] = ratings_df['Book-Rating'].mean()
+        return item
+    else:
+        raise HTTPException(status_code=400, detail="Book not found")
 
 @app.get("/high-rated")
 def get_high_rated_books() -> List[Dict[str, Any]]:

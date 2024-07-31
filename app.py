@@ -28,6 +28,7 @@ class BookRequest(BaseModel):
 def read_root():
     return {"message": "API is Running"}
 
+@app.post("/recom")
 def recommend(book_name: str) -> List[Dict[str, Any]]:
     try:
         index = np.where(pivot_table.index == book_name)[0][0]

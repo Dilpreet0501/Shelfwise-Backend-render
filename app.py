@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import numpy as np
+import pandas as pd
 import pickle
 
 app = FastAPI()
@@ -42,15 +43,16 @@ def recommend(book_name: str) -> List[Dict[str, Any]]:
     for idx, similarity in similar_books:
         item = {}
         temp_df = new_books[new_books['Book-Title'] == pivot_table.index[idx]]
-        item['title'] = temp_df['Book-Title'].values[0]
-        item['author'] = temp_df['Book-Author'].values[0]
-        item['image_url'] = temp_df['Image-URL-M'].values[0]
+        if not temp_df.empty:
+            item['title'] = temp_df['Book-Title'].values[0]
+            item['author'] = temp_df['Book-Author'].values[0]
+            item['image_url'] = temp_df['Image-URL-M'].values[0]
 
-        ratings_df = ratings_with_name[ratings_with_name['Book-Title'] == pivot_table.index[idx]]
-        item['average_rating'] = ratings_df['Book-Rating'].mean()
+            ratings_df = ratings_with_name[ratings_with_name['Book-Title'] == pivot_table.index[idx]]
+            item['average_rating'] = ratings_df['Book-Rating'].mean()
 
-        item['similarity'] = similarity
-        data.append(item)
+            item['similarity'] = similarity
+            data.append(item)
 
     return data
 
@@ -69,17 +71,18 @@ def get_books(book_request: BookRequest):
     if not book_name:
         raise HTTPException(status_code=400, detail="Book name not provided")
     
-    item={}
-    if book_name==new_books['Book-Title']:
-        item['title'] = new_books['Book-Title']
-        item['author'] = new_books['Book-Author']
-        item['image_url'] = new_books['Image-URL-M']
+    item = {}
+    temp_df = new_books[new_books['Book-Title'] == book_name]
+    if not temp_df.empty:
+        item['title'] = temp_df['Book-Title'].values[0]
+        item['author'] = temp_df['Book-Author'].values[0]
+        item['image_url'] = temp_df['Image-URL-M'].values[0]
 
-        ratings_df = ratings_with_name[ratings_with_name['Book-Title'] == pivot_table.index[idx]]
+        ratings_df = ratings_with_name[ratings_with_name['Book-Title'] == book_name]
         item['average_rating'] = ratings_df['Book-Rating'].mean()
-        return item
+        return {"getbooks": item}
     else:
-        raise HTTPException(status_code=400, detail="Book not found")
+        raise HTTPException(status_code=404, detail="Book not found")
 
 @app.get("/high-rated")
 def get_high_rated_books() -> List[Dict[str, Any]]:
@@ -93,15 +96,15 @@ def get_high_rated_books() -> List[Dict[str, Any]]:
     for _, row in high_rated_books.iterrows():
         item = {}
         temp_df = new_books[new_books['Book-Title'] == row['Book-Title']]
-        item['title'] = temp_df['Book-Title'].values[0]
-        item['author'] = temp_df['Book-Author'].values[0]
-        item['image_url'] = temp_df['Image-URL-M'].values[0]
-        item['average_rating'] = row['average_rating']
-        data.append(item)
+        if not temp_df.empty:
+            item['title'] = temp_df['Book-Title'].values[0]
+            item['author'] = temp_df['Book-Author'].values[0]
+            item['image_url'] = temp_df['Image-URL-M'].values[0]
+            item['average_rating'] = row['average_rating']
+            data.append(item)
 
     return {"high_rated_books": data}
 
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5000)
-

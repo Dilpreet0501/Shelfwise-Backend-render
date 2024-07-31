@@ -103,7 +103,7 @@ def get_high_rated_books() -> List[Dict[str, Any]]:
             item['average_rating'] = row['average_rating']
             data.append(item)
 
-    return {"high_rated_books": data}
+    return data
 
 if __name__ == '__main__':
     import uvicorn
